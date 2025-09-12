@@ -1,0 +1,3 @@
+[submodule "DiffTestSample"]
+	path = DiffTestSample
+	url = git@github.com:albert-qjinp-queuez/DiffTestSample.git
