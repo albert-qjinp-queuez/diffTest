@@ -21,28 +21,31 @@ struct Mark: ParsableCommand {
         print("args: \(args)")
         let root = root ?? runningRoot()
         let url = URL(filePath: root, directoryHint: .isDirectory)
-        let resultReporter = ResultReporter(rootDir: url.appending(path: ".test_marker") )
+        let finalReportURL = url.appending(path: ".test_marker")
+        let resultReporter = TestListReporter(rootDir:  finalReportURL)
         resultReporter.prepare()
         guard let xcodeFiles = findXcodeFile(url: url),
             xcodeFiles.count > 0,
             let xcodeFile = xcodeFiles.first
-            , let fullBuildResult = URL(string: root + "/temp/result/total-test/results.xcresult")
         else {
             DiffTest.exit(withError: DiffTestError.unkown)
         }
         let xcodeFilePath = String(xcodeFile.absoluteString.trimmingPrefix("file://"))
         print("xcodeFile : \(xcodeFilePath)")
-        
+        let perTestCoverage = PerTestCoverageReporter()
         do {
-//            try TestRunner.runBuildForTest(xcodeFile: xcodeFilePath, root: root)
-//            _ = try TestRunner.runFullTest(xcodeFile: xcodeFilePath, root: root)
+//*            try TestRunner.runBuildForTest(xcodeFile: xcodeFilePath, root: root) */
+            let fullBuildResult = try TestRunner.runFullTest(xcodeFile: xcodeFilePath, root: root)
+            let fullTestCoverage = try TestRunner.collectTestCoverage(xcodeFile: xcodeFilePath, root: root, test: nil)
+            try perTestCoverage.readFullCoverage(fullTestCoverage)
             let testResults = TestRunner.extractTests(resultUrl: fullBuildResult)
             resultReporter.testList(tests: testResults)
             for test in testResults {
-//                _ = try TestRunner.runTestCoverage(xcodeFile: xcodeFilePath, root: root, test: test)
-                try TestRunner.collectTestCoverage(xcodeFile: xcodeFilePath,root: root, test: test)
+                _ = try TestRunner.runTestCoverage(xcodeFile: xcodeFilePath, root: root, test: test)
+                let ptc = try TestRunner.collectTestCoverage(xcodeFile: xcodeFilePath, root: root, test: test)
+                try perTestCoverage.mergeIndividualCoverage(ptc, test: test)
             }
-            
+            try perTestCoverage.save(finalReportURL)
         } catch {
             DiffTest.exit(withError: error)
         }

@@ -56,24 +56,19 @@ struct TestRunner {
 //    }
 
     static func runFullTest(xcodeFile: String, root: String) throws -> URL {
-        let bashCommand = """
-cd \(root)
-xcodebuild \
--project \(xcodeFile) \
--scheme DiffTestSample \
--destination "platform=iOS Simulator,name=iPhone 16,OS=18.2" \
--configuration Debug \
--derivedDataPath ./temp/result/total-test/build \
--resultBundlePath ./temp/result/total-test/results.xcresult \
--enableCodeCoverage YES \
- test
-"""
-        let _ = try Util.bashScript(command: bashCommand)
-        return URL(fileURLWithPath: "\(root)/temp/result/total-test-results.xcresult")
+        return try self.runTest(xcodeFile: xcodeFile, root: root, test: nil)
     }
     
     static func runTestCoverage(xcodeFile: String, root: String, test: TestModel) throws -> URL {
-        let path = test.identifierPath()
+        return try self.runTest(xcodeFile: xcodeFile, root: root, test: test)
+    }
+    
+    static func runTest(xcodeFile: String, root: String, test: TestModel?) throws -> URL {
+        let path = test?.identifierPath() ?? "./temp/result/full-test"
+        var testingScope = ""
+        if let identifier = test?.identifier {
+            testingScope = "-only-testing:\"\(identifier)\""
+        }
         let bashCommand = """
 cd \(root)
 xcodebuild \
@@ -84,15 +79,18 @@ xcodebuild \
 -derivedDataPath \(path)/build \
 -resultBundlePath \(path)/results.xcresult \
 -enableCodeCoverage YES \
--only-testing:"\(test.identifier)" \
+ \(testingScope) \
  test
 """
         let _ = try Util.bashScript(command: bashCommand)
-        return URL(fileURLWithPath: "\(root)/temp/result/\(path)")
+        var filePath = URL(fileURLWithPath: "\(root)")
+        filePath = filePath.appendingPathComponent(path)
+        filePath = filePath.appendingPathComponent("results.xcresult")
+        return filePath
     }
     
-    static func collectTestCoverage(xcodeFile: String, root: String, test: TestModel) throws {
-        let path = test.identifierPath()
+    static func collectTestCoverage(xcodeFile: String, root: String, test: TestModel?) throws -> URL {
+        let path = test?.identifierPath() ?? "./temp/result/full-test"
         let bashCommand = """
 cd \(root)
 slather coverage \
@@ -104,6 +102,10 @@ slather coverage \
   ./DiffTestSample.xcodeproj
 """
         let _ = try Util.bashScript(command: bashCommand)
+        let resultURL =  URL(fileURLWithPath: root)
+            .appending(path:  "\(path)")
+            .appending(path: "report.json")
+        return resultURL.standardizedFileURL
     }
     
     static func coverageReportPath(path: String) -> String {
@@ -153,59 +155,4 @@ rm -rf ./temp/result
 
         return testGroups
     }
-}
-
-class ResultReporter: NSObject {
-    static let testList = "test_list.txt"
-    var fm = FileManager.default
-    
-    var rootDir: URL
-    init(rootDir: URL) {
-        self.rootDir = rootDir
-        super.init()
-        fm.delegate = self
-    }
-    
-    func prepare() {
-        var isDir = ObjCBool(true)
-        if fm.fileExists(atPath: rootDir.standardizedFileURL.absoluteString,
-                         isDirectory: &isDir) {
-            try? fm.removeItem(at: rootDir)
-        }
-        try? fm.createDirectory(at: rootDir, withIntermediateDirectories: true)
-    }
-    
-    func testList(tests: [TestModel]) {
-        let testFile = rootDir.appending(path: Self.testList)
-        guard let fs = OutputStream(url: testFile, append: false) else {
-            return
-        }
-        fs.open()
-        for test in tests {
-            let testName = test.identifier + "\n"
-            if let data = testName.data(using: .utf8) as? NSData {
-                fs.write(data.bytes, maxLength: data.count)
-            }
-        }
-        fs.close()
-        
-    }
-}
-
-extension ResultReporter: FileManagerDelegate {
-    func fileManager(_ f: FileManager, shouldRemoveItemAt: URL) -> Bool {
-        return true
-    }
-    func fileManager(_ f: FileManager, shouldRemoveItemAtPath: String) -> Bool {
-        return true
-    }
-    func fileManager(_ f: FileManager, shouldProceedAfterError: any Error, removingItemAt: URL) -> Bool {
-        return true
-    }
-    
-    func fileManager(_ f: FileManager, shouldProceedAfterError: any Error, removingItemAtPath: String) -> Bool {
-        return true
-    }
-    
-
 }
