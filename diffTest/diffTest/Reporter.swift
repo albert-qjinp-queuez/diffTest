@@ -16,7 +16,13 @@ class PerTestCoverageReporter: NSObject {
         let data = try Data(contentsOf: url)
         let fileCoverages = try JSONDecoder().decode( [SlatherFileCoverage].self, from: data)
         for fileCoverage in fileCoverages {
-            perTestsCoverageMap[fileCoverage.file] = fileCoverage
+            var mutatingFileCoverage = fileCoverage
+            for (index, coverage) in mutatingFileCoverage.coverage.enumerated() {
+                if let coverage = coverage {
+                    mutatingFileCoverage.prepareCoverageMap(line: index, fullCoverage: coverage)
+                }
+            }
+            perTestsCoverageMap[mutatingFileCoverage.file] = mutatingFileCoverage
         }
     }
 
@@ -29,7 +35,7 @@ class PerTestCoverageReporter: NSObject {
         for fileCoverage in perTestCoverages {
             for (index, lineCoverage) in fileCoverage.coverage.enumerated() {
                 if let lineCoverage = lineCoverage {
-                    perTestsCoverageMap[fileCoverage.file]?
+                    try perTestsCoverageMap[fileCoverage.file]?
                         .addCoverage(testIdentifier: test.identifier,
                                      line: index,
                                      coverage: lineCoverage)
@@ -39,9 +45,9 @@ class PerTestCoverageReporter: NSObject {
     }
 
     func save(_ url: URL) throws {
-        let url = url.appending(path: "perTestCoverageMap.json")
-        var encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        let url = url.appending(path: Const.markerCoverageMapFile)
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
         
         let data = try encoder
             .encode(perTestsCoverageMap)
@@ -50,7 +56,7 @@ class PerTestCoverageReporter: NSObject {
 }
 
 class TestListReporter: NSObject {
-    static let testList = "test_list.txt"
+    static let testList = Const.markerTestListFile
     var fm = FileManager.default
     
     var rootDir: URL

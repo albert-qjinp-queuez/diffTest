@@ -6,153 +6,77 @@
 //
 
 import Foundation
-import XCResultKit
 
-struct Util {
-    static func bashScript(command: String) throws -> String? {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/bin/bash")
-        process.arguments = ["-l", "-c", command]
-        print("bash command: \n\n")
-        print(command)
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = pipe
-
-        try process.run()
-
-        var totalScript = ""
-        // 백그라운드에서 읽기
-        pipe.fileHandleForReading.readabilityHandler = { handle in
-            if let line = String(data: handle.availableData, encoding: .utf8),
-               !line.isEmpty {
-                print("SCRIPT:", line)
-                totalScript += line
-            }
-        }
-
-        process.waitUntilExit()
-
-        pipe.fileHandleForReading.readabilityHandler = nil
-        return totalScript
-    }
+struct Const {
+    static let fullTestPath = "./temp/result/full-test"
+    static let xcResult = "results.xcresult"
+    static let slatherReport = "report.json"
+    static let tempPath = "./temp/result"
+    static let markerPath = ".test_marker"
+    static let markerHashPath = ".test_marker/marked_hash.txt"
+    static let markerTestListFile = "test_list.txt"
+    static let markerCoverageMapFile = "per_test_coverage_map.json"
 }
 
 struct TestRunner {
-// feel like this is tricking the test result and code coverages disable for now
-//    static func runBuildForTest(xcodeFile: String, root: String) throws {
-//        let bashCommand = """
-//cd \(root)
-//xcodebuild \
-//-project \(xcodeFile) \
-//-scheme DiffTestSample \
-//-destination "platform=iOS Simulator,name=iPhone 16,OS=18.2" \
-//-configuration Debug \
-//-derivedDataPath ./temp/build \
-//-enableCodeCoverage YES \
-// build-for-testing
-//"""
-//        let _ = try Util.bashScript(command: bashCommand)
-//    }
+    let fullTestPath = Const.fullTestPath
+    let xcResult = Const.xcResult
+    let slatherReport = Const.slatherReport
+    let tempPath = Const.tempPath
+    
+    var projectRoot: String
+    var gitRoot: String //for now, but better to seperate if needed
+    var destination = "platform=iOS Simulator,name=iPhone 16,OS=18.2" //for now, but better to get (or search)
+    var xcodeFile = "DiffTestSample.xcproj" //for now, but better to get (or search)
+    var schema = "DiffTestSample"  //for now, but better to get (or search)
+    
+    init(root: String) {
+        self.projectRoot = root
+        self.gitRoot = root //for now, but better to seperate this in the future
+    }
+    
+    func installGitStretagy() throws {
+        let bashCommand = """
+git config --get merge.theirs-always.name >/dev/null 2>&1 || git config merge.theirs-always.name "always take theirs"
+git config --get merge.theirs-always.driver >/dev/null 2>&1 || git config merge.theirs-always.driver "cp %B %A"
 
-    static func runFullTest(xcodeFile: String, root: String) throws -> URL {
-        return try self.runTest(xcodeFile: xcodeFile, root: root, test: nil)
+git config --get merge.theirs-ours.name >/dev/null 2>&1 || git config merge.theirs-ours.name "always take ours"
+git config --get merge.theirs-ours.driver >/dev/null 2>&1 || git config merge.theirs-ours.driver "cp %A %A"
+
+grep -q '^\(Const.markerPath)/' .gitattributes || echo '\(Const.markerPath)/* merge=theirs-always' >> .gitattributes
+"""
+        let _ = try ScriptUtil.bashScript(command: bashCommand)
     }
     
-    static func runTestCoverage(xcodeFile: String, root: String, test: TestModel) throws -> URL {
-        return try self.runTest(xcodeFile: xcodeFile, root: root, test: test)
-    }
-    
-    static func runTest(xcodeFile: String, root: String, test: TestModel?) throws -> URL {
-        let path = test?.identifierPath() ?? "./temp/result/full-test"
+    func runTest(xcodeFile: String, test: TestModel?) throws -> URL {
+        let path = test?.identifierPath() ?? fullTestPath
         var testingScope = ""
         if let identifier = test?.identifier {
             testingScope = "-only-testing:\"\(identifier)\""
         }
         let bashCommand = """
-cd \(root)
+cd \(projectRoot)
 xcodebuild \
 -project \(xcodeFile) \
--scheme DiffTestSample \
--destination "platform=iOS Simulator,name=iPhone 16,OS=18.2" \
+-scheme \(schema) \
+-destination "\(destination)" \
 -configuration Debug \
 -derivedDataPath \(path)/build \
--resultBundlePath \(path)/results.xcresult \
+-resultBundlePath \(path)/\(xcResult) \
 -enableCodeCoverage YES \
  \(testingScope) \
  test
 """
-        let _ = try Util.bashScript(command: bashCommand)
-        var filePath = URL(fileURLWithPath: "\(root)")
-        filePath = filePath.appendingPathComponent(path)
-        filePath = filePath.appendingPathComponent("results.xcresult")
-        return filePath
+        let _ = try ScriptUtil.bashScript(command: bashCommand)
+        return testResultURL(test: test)
     }
-    
-    static func collectTestCoverage(xcodeFile: String, root: String, test: TestModel?) throws -> URL {
-        let path = test?.identifierPath() ?? "./temp/result/full-test"
+
+    func clean() throws {
         let bashCommand = """
-cd \(root)
-slather coverage \
-  --workspace \(xcodeFile) \
-  --scheme DiffTestSample \
-  --build-directory \(path)/build \
-  --output-directory \(path) \
-  --json \
-  ./DiffTestSample.xcodeproj
+cd \(projectRoot)
+rm -rf \(tempPath)
 """
-        let _ = try Util.bashScript(command: bashCommand)
-        let resultURL =  URL(fileURLWithPath: root)
-            .appending(path:  "\(path)")
-            .appending(path: "report.json")
-        return resultURL.standardizedFileURL
-    }
-    
-    static func coverageReportPath(path: String) -> String {
-        return "./temp/result/" + path.replacingOccurrences(of: "()", with: "")
+        let _ = try ScriptUtil.bashScript(command: bashCommand)
     }
 
-    static func clean(root: String) throws {
-        let bashCommand = """
-cd \(root)
-rm -rf ./temp/result
-"""
-        let _ = try Util.bashScript(command: bashCommand)
-    }
-
-    static func extractTests(resultUrl: URL) -> [TestModel] {
-        let resultFile = XCResultFile(url: resultUrl)
-        let invocationRecord = resultFile.getInvocationRecord()
-        guard let testsRef = invocationRecord?.actions.first?.actionResult.testsRef
-        else {
-            DiffTest.exit(withError: DiffTestError.unkown)
-        }
-
-        let testID = testsRef.id
-        guard let testPlanRunSummaries = resultFile.getTestPlanRunSummaries(id: testID) else {
-            DiffTest.exit(withError: DiffTestError.unkown)
-        }
-        print("\n\n\(testPlanRunSummaries)")
-        var testGroups = [TestModel]()
-
-        for testSum in testPlanRunSummaries.summaries {
-            for testable in testSum.testableSummaries {
-                for testClass in testable.tests {
-                    for testFunction in testClass.subtests {
-                        let schemeName = invocationRecord?.actions.first?.testPlanName ?? ""
-                        let idURL = testFunction.identifierURL ?? ""
-                        let schemeRange = idURL.firstRange(of: schemeName)
-                        let startIndex = schemeRange?.upperBound ?? idURL.startIndex
-
-                        let testID = String(idURL[idURL.index(after: startIndex)..<idURL.endIndex])
-                        let model = TestModel(result: testFunction,
-                            identifier: testID)
-                        testGroups.append(model)
-                    }
-                }
-            }
-        }
-
-        return testGroups
-    }
 }

@@ -119,14 +119,15 @@ xcrun xccov view \
 ./temp/result/DiffTestSampleTests_DiffSampleXCTests_testXCToggle2.xcresult
 ```
 
-
+``` bash
 xcrun xcresulttool get \
   --legacy \
   --path ./temp/result/DiffTestSampleTests_DiffSampleXCTests_testXCToggle2.xcresult \
   --id 0~rAYtr2dWH3GXWmZJceggAUmOjYq_yzYOBidj40vKgg619dydNt1V9CNhj7g6RyoQVCsli-8X6fo7TKN30s475Q== \
   --format json > DiffTestSampleTests_DiffSampleXCTests_testXCToggle2_coverage.json
+```
 
-
+``` bash
 slather coverage \
   --workspace DiffTestSample.xcodeproj \
   --scheme DiffTestSample \
@@ -134,13 +135,44 @@ slather coverage \
   --output-directory ./temp/result/DiffTestSampleUITests/DiffTestSampleUITestsLaunchTests/testLaunch \
   --json \
   ./DiffTestSample.xcodeproj
-
+'''
 
 5. make a git commit 
-태깅준비
-태깅 파일 저장
-모든 다른 파일과 함께 태깅 커밋
-태깅하기
+- 태깅준비
+``` bash
+cd .
+git fetch
+COMMIT_HASH=$(git rev-parse HEAD)
+git rev-parse -q --verify "test_marker/$COMMIT_HASH"
+```
+
+- 태깅 파일 저장
+``` bash
+git fetch
+COMMIT_HASH=$(git rev-parse HEAD)
+echo $COMMIT_HASH > \(Const.markerPath)/marked_hash.txt
+```
+
+- 모든 다른 파일과 함께 태깅 커밋
+``` bash
+git add \(Const.markerPath)/
+git commit --message "DiffTest Marker Against $COMMIT_HASH | \(message) \n "
+```
+
+- 태깅하기
+``` bash
+git tag "test_marker/$COMMIT_HASH" -m "per test coverage marked"
+```
+
 
 6. diffSuite
-태깅과 현제파일을 비교
+- get marked_hash.txt > markedHash
+- diff with markedHash
+- collect changed line numbers in diff
+- get markerCoverageMapFile > perTestCoverageMap
+- collect test in changed line > testNeeded
+- get test_list > testList
+- filter testNeeded from testList > testNotNeeded
+-  xcode build test with -skip-testing:testNotNeeded
+- can we create and insert TestPlan with this?
+  * so that it can run in Xcode UI > display result xcode more easy
