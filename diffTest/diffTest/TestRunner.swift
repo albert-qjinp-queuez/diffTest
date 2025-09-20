@@ -16,6 +16,7 @@ struct Const {
     static let markerHashPath = ".test_marker/marked_hash.txt"
     static let markerTestListFile = "test_list.txt"
     static let markerCoverageMapFile = "per_test_coverage_map.json"
+    static let diffPath = "./temp/diff.txt"
 }
 
 struct TestRunner {

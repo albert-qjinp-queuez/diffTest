@@ -167,8 +167,20 @@ git tag "test_marker/$COMMIT_HASH" -m "per test coverage marked"
 
 6. diffSuite
 - get marked_hash.txt > markedHash
+``` bash 
+cat ./.test_marker/marked_hash.txt
+```
+
 - diff with markedHash
+``` bash
+mkdir temp
+git diff fee15d0f5bf6bf89747be4bb363ba765441f232b > temp/diff.txt
+```
+
 - collect changed line numbers in diff
+``` bash
+```
+
 - get markerCoverageMapFile > perTestCoverageMap
 - collect test in changed line > testNeeded
 - get test_list > testList

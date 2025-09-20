@@ -16,9 +16,14 @@ struct Test: ParsableCommand {
         let args = CommandLine.arguments
         print("args: \(args)")
         let root = root ?? runningRoot()
-        let url = URL(filePath: root, directoryHint: .isDirectory)
-        let finalReportURL = url.appending(path: Const.markerPath)
+        let rootURL = URL(filePath: root, directoryHint: .isDirectory)
+        let testRunner = TestRunner(root: root)
         
+        guard let hashKey = try? testRunner.readHash() else {
+            DiffTest.exit(withError: DiffTestError.unkown)
+        }
+        try? testRunner.makeDiff(hash: hashKey)
+        try? testRunner.parseDiff(rootURL: rootURL)
     }
     
     func runningRoot() -> String {
@@ -31,5 +36,21 @@ struct Test: ParsableCommand {
         }
         let runningPath: NSString = args[0] as NSString
         return runningPath.deletingLastPathComponent
+    }
+
+    func findXcodeFile(url rootURL: URL) ->  [URL]? {
+        var xcodeFiles: [URL]?
+        do {
+            xcodeFiles = try FileManager
+                .default
+                .contentsOfDirectory(at: rootURL, includingPropertiesForKeys: nil)
+            xcodeFiles = xcodeFiles?.filter() {
+                return $0.pathExtension == "xcworkspace"
+                    || $0.pathExtension == "xcodeproj"
+            }
+        } catch {
+            DiffTest.exit(withError: DiffTestError.unkown)
+        }
+        return xcodeFiles
     }
 }

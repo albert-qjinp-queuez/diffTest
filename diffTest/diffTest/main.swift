@@ -14,7 +14,7 @@ enum DiffTestError: Error {
 
 struct DiffTest: ParsableCommand {
     static var configuration = CommandConfiguration(
-        subcommands: [Mark.self]
+        subcommands: [Mark.self, Test.self]
     )
 }
 
