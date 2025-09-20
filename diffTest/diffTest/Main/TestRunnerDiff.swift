@@ -20,10 +20,11 @@ cat ./.test_marker/marked_hash.txt
     
     // TODO: diff with markedHash
     func makeDiff(hash: String) throws {
-        var hash = hash.replacingOccurrences(of: "\\s+", with: "", options: .regularExpression)
+        let hash = hash.replacingOccurrences(of: "\\s+", with: "", options: .regularExpression)
         let bashCommand = """
     cd \(projectRoot)
-    mkdir temp
+    rm -rf \(tempPath)
+    mkdir \(tempPath)
     git diff \(hash) > \(Const.diffPath)
     """
         let _ = try ScriptUtil.bashScript(command: bashCommand)
