@@ -23,8 +23,8 @@ struct Mark: ParsableCommand {
         print("args: \(args)")
         let root = root ?? runningRoot()
         let url = URL(filePath: root, directoryHint: .isDirectory)
-        let finalReportURL = url.appending(path: Const.markerPath)
-        let resultReporter = TestListReporter(rootDir:  finalReportURL)
+        let finalReportURL = url.appending(path: Const.markerDirPath)
+        let resultReporter = TestListReporter(markerRootURL:  finalReportURL)
         resultReporter.prepare()
         guard let xcodeFiles = findXcodeFile(url: url),
             xcodeFiles.count > 0,

@@ -9,8 +9,8 @@ import Foundation
 
 class GitDiffStreamParser {
     var lineReader: LineReader
-    init(url: URL) throws {
-        guard let lr = try LineReader(url: url) else {
+    init(gitDiffURL: URL) throws {
+        guard let lr = try LineReader(url: gitDiffURL) else {
             DiffTest.exit(withError: DiffTestError.unkown)
         }
         lineReader = lr
@@ -29,14 +29,14 @@ class GitDiffStreamParser {
         case noChange
     }
     
-    func parse(eachHunk:(Hunk)->()) {
+    func parse(eachHunk:(Hunk) throws -> ()) throws {
         var currentHunk: Hunk?
         var oldLineCount = 0
         var previousStage = HunkStage.unknown
         while let line = lineReader.next() {
             if line.hasPrefix("diff") {
                 if let currentHunk = currentHunk {
-                    eachHunk(currentHunk)
+                    try eachHunk(currentHunk)
                 }
                 currentHunk = Hunk(old: HunkChange(file: "", startLine: 0, change: 0),
                                    new: HunkChange(file: "", startLine: 0, change: 0))
@@ -57,7 +57,7 @@ class GitDiffStreamParser {
             } else if line.hasPrefix("@@") {
                 if let hunkToSend = currentHunk,
                    hunkToSend.isStarted {
-                    eachHunk(hunkToSend)
+                    try eachHunk(hunkToSend)
                     currentHunk = Hunk(copy: hunkToSend)
                 }
                 currentHunk?.parse(hunkHeader: line)
@@ -65,7 +65,7 @@ class GitDiffStreamParser {
             } else if line.hasPrefix("-") {
                 var line = currentHunk?.old.startLine ?? 0
                 line += oldLineCount
-                currentHunk?.broakenLines.add(line)
+                currentHunk?.brokenLines.add(line)
                 oldLineCount += 1
                 previousStage = .deleted
             } else if line.hasPrefix("+") {
@@ -73,8 +73,8 @@ class GitDiffStreamParser {
                    previousStage != .added {
                     var line = currentHunk?.old.startLine ?? 0
                     line += oldLineCount
-                    currentHunk?.broakenLines.add(line)
-                    currentHunk?.broakenLines.add(line+1)
+                    currentHunk?.brokenLines.add(line)
+                    currentHunk?.brokenLines.add(line+1)
                 }
                 previousStage = .added
             } else {
@@ -84,11 +84,8 @@ class GitDiffStreamParser {
         }
         if let hunkToSend = currentHunk,
            hunkToSend.isStarted {
-            eachHunk(hunkToSend)
+            try eachHunk(hunkToSend)
         }
     }
     
 }
-
-
-

@@ -17,7 +17,7 @@ struct Hunk {
     var isStarted = false
     var old: HunkChange
     var new: HunkChange
-    var broakenLines = NSMutableSet()
+    var brokenLines = NSMutableSet()
     
     init(old: HunkChange, new: HunkChange) {
         self.old = old

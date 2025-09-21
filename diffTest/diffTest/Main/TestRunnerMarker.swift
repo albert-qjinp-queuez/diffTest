@@ -102,8 +102,8 @@ git rev-parse -q --verify "test_marker/$COMMIT_HASH"
 cd \(gitRoot)
 git fetch
 COMMIT_HASH=$(git rev-parse HEAD)
-echo $COMMIT_HASH > \(Const.markerPath)/marked_hash.txt
-git add \(Const.markerPath)/
+echo $COMMIT_HASH > \(Const.markerDirPath)/marked_hash.txt
+git add \(Const.markerDirPath)/
 git commit --message "DiffTest Marker Against $COMMIT_HASH | \(message) \n "
 git tag "test_marker/$COMMIT_HASH" -m "per test coverage marked"
 """

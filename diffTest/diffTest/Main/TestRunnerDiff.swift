@@ -23,22 +23,29 @@ cat ./.test_marker/marked_hash.txt
         let hash = hash.replacingOccurrences(of: "\\s+", with: "", options: .regularExpression)
         let bashCommand = """
     cd \(projectRoot)
-    rm -rf \(tempPath)
-    mkdir \(tempPath)
-    git diff \(hash) > \(Const.diffPath)
+    rm -rf \(Const.tempDirPath)
+    mkdir \(Const.tempDirPath)
+    git diff \(hash) > \(Const.diffFilePath)
     """
         let _ = try ScriptUtil.bashScript(command: bashCommand)
     }
     
+    
     // TODO: collect changed line numbers in diff
     func parseDiff(rootURL: URL) throws {
-        let diffURL = rootURL.appending(path: Const.diffPath)
-        let parser = try GitDiffStreamParser(url: diffURL)
-        parser.parse { hunk in
-            print("hunk.old \(hunk.old.file)")
-            print("hunk.new \(hunk.new.file)")
-            print("hunk.broakenLines \(hunk.broakenLines)")
+        
+        let brokenReporter = try GitBrokenLineReporter(rootDir: rootURL)
+        let diffURL = rootURL
+            .appending(path: Const.diffFilePath)
+        let parser = try GitDiffStreamParser(gitDiffURL: diffURL)
+        try parser.parse { hunk in
+            if let filePath = hunk.old.file {
+                for case let brokenLine as Int in hunk.brokenLines {
+                    try brokenReporter.writeLine(lineNumber: brokenLine, filePath: filePath)
+                }
+            }
         }
+        brokenReporter.close()
     }
     
     // TODO: get markerCoverageMapFile > perTestCoverageMap

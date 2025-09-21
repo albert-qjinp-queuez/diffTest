@@ -45,7 +45,7 @@ class PerTestCoverageReporter: NSObject {
     }
 
     func save(_ url: URL) throws {
-        let url = url.appending(path: Const.markerCoverageMapFile)
+        let url = url.appending(path: Const.markerCoverageMapFileName)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
         
@@ -56,27 +56,27 @@ class PerTestCoverageReporter: NSObject {
 }
 
 class TestListReporter: NSObject {
-    static let testList = Const.markerTestListFile
-    var fm = FileManager.default
+    static let testList = Const.markerTestListFileName
+    let fm = FileManager.default
+    var markerRootDir: URL
     
-    var rootDir: URL
-    init(rootDir: URL) {
-        self.rootDir = rootDir
+    init(markerRootURL: URL) {
+        self.markerRootDir = markerRootURL
         super.init()
         fm.delegate = self
     }
     
     func prepare() {
         var isDir = ObjCBool(true)
-        if fm.fileExists(atPath: rootDir.standardizedFileURL.absoluteString,
+        if fm.fileExists(atPath: markerRootDir.standardizedFileURL.absoluteString,
                          isDirectory: &isDir) {
-            try? fm.removeItem(at: rootDir)
+            try? fm.removeItem(at: markerRootDir)
         }
-        try? fm.createDirectory(at: rootDir, withIntermediateDirectories: true)
+        try? fm.createDirectory(at: markerRootDir, withIntermediateDirectories: true)
     }
     
     func testList(tests: [TestModel]) {
-        let testFile = rootDir.appending(path: Self.testList)
+        let testFile = markerRootDir.appending(path: Self.testList)
         guard let fs = OutputStream(url: testFile, append: false) else {
             return
         }
@@ -106,6 +106,4 @@ extension TestListReporter: FileManagerDelegate {
     func fileManager(_ f: FileManager, shouldProceedAfterError: any Error, removingItemAtPath: String) -> Bool {
         return true
     }
-    
-
 }

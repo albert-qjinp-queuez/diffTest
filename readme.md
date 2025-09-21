@@ -16,6 +16,8 @@ If we use code coverage and diff together we can make it work
   3. from full-unit test collect all existing test functions
   4. for each individual test functions, run test with code coverage (test without build)
   5. convert and combine `(all individual test > code coverage)` into `(code line > covered by test functions)`
+    - be aware perTestCoverageMap.json is generated based on slather reports line coverage count array, line is line Index, not line Number
+      line Index starts from 0, different from regular line Number that will start from 1 
   6. commit `(code line > covered by test function)` with  `diffMark` tag
 
 - `diffTest`
