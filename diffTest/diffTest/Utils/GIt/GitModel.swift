@@ -7,6 +7,11 @@
 
 import Foundation
 
+struct Broken {
+    var filePath: String
+    var line: Int
+}
+
 struct HunkChange {
     var file: String?
     var startLine: Int
