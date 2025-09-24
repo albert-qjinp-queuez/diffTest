@@ -8,22 +8,24 @@
 import Foundation
 
 struct Const {
-    static let fullTestPath = "./temp/result/full-test"
-    static let xcResult = "results.xcresult"
-    static let slatherReport = "report.json"
-    static let tempPath = "./temp/result"
-    static let markerPath = ".test_marker"
-    static let markerHashPath = ".test_marker/marked_hash.txt"
-    static let markerTestListFile = "test_list.txt"
-    static let markerCoverageMapFile = "per_test_coverage_map.json"
-    static let diffPath = "./temp/diff.txt"
+    static let tempDirPath = "./temp"
+    static let fullTestDirPath = "./temp/result/full-test"
+    static let tempResultDirPath = "./temp/result"
+    static let markerDirPath = ".test_marker"
+    static let xcResultFileName = "results.xcresult"
+    static let slatherReportFileNaem = "report.json"
+    static let markerTestListFileName = "test_list.txt"
+    static let markerCoverageMapFileName = "per_test_coverage_map.json"
+    static let brokenFileName = "broken.txt"
+    static let markerHashFilePath = ".test_marker/marked_hash.txt"
+    static let diffFilePath = "./temp/diff.txt"
 }
 
 struct TestRunner {
-    let fullTestPath = Const.fullTestPath
-    let xcResult = Const.xcResult
-    let slatherReport = Const.slatherReport
-    let tempPath = Const.tempPath
+    let fullTestPath = Const.fullTestDirPath
+    let xcResult = Const.xcResultFileName
+    let slatherReport = Const.slatherReportFileNaem
+    let tempResultPath = Const.tempResultDirPath
     
     var projectRoot: String
     var gitRoot: String //for now, but better to seperate if needed
@@ -44,15 +46,15 @@ git config --get merge.theirs-always.driver >/dev/null 2>&1 || git config merge.
 git config --get merge.theirs-ours.name >/dev/null 2>&1 || git config merge.theirs-ours.name "always take ours"
 git config --get merge.theirs-ours.driver >/dev/null 2>&1 || git config merge.theirs-ours.driver "cp %A %A"
 
-grep -q '^\(Const.markerPath)/' .gitattributes || echo '\(Const.markerPath)/* merge=theirs-always' >> .gitattributes
+grep -q '^\(Const.markerDirPath)/' .gitattributes || echo '\(Const.markerDirPath)/* merge=theirs-always' >> .gitattributes
 """
         let _ = try ScriptUtil.bashScript(command: bashCommand)
     }
     
-    func runTest(xcodeFile: String, test: TestModel?) throws -> URL {
-        let path = test?.identifierPath() ?? fullTestPath
+    func runTest(xcodeFile: String, testOnly: TestModel? = nil, skipTest: String = "") throws -> URL {
+        let path = testOnly?.identifierPath() ?? fullTestPath
         var testingScope = ""
-        if let identifier = test?.identifier {
+        if let identifier = testOnly?.identifier {
             testingScope = "-only-testing:\"\(identifier)\""
         }
         let bashCommand = """
@@ -66,16 +68,17 @@ xcodebuild \
 -resultBundlePath \(path)/\(xcResult) \
 -enableCodeCoverage YES \
  \(testingScope) \
+ \(skipTest) \
  test
 """
         let _ = try ScriptUtil.bashScript(command: bashCommand)
-        return testResultURL(test: test)
+        return testResultURL(test: testOnly)
     }
 
     func clean() throws {
         let bashCommand = """
 cd \(projectRoot)
-rm -rf \(tempPath)
+rm -rf \(tempResultPath)
 """
         let _ = try ScriptUtil.bashScript(command: bashCommand)
     }

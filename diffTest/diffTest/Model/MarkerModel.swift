@@ -13,7 +13,7 @@ struct TestModel: Hashable {
     var identifier: String
     
     func identifierPath() -> String {
-        return Const.tempPath + "/" + identifier.replacingOccurrences(of: "()", with: "")
+        return Const.tempResultDirPath + "/" + identifier.replacingOccurrences(of: "()", with: "")
     }
     
     func hash(into hasher: inout Hasher) {

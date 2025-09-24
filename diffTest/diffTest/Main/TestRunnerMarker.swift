@@ -19,11 +19,11 @@ extension TestRunner {
     }
     
     func runFullTest(xcodeFile: String) throws -> URL {
-        return try self.runTest(xcodeFile: xcodeFile, test: nil)
+        return try self.runTest(xcodeFile: xcodeFile, testOnly: nil)
     }
     
     func runTestCoverage(xcodeFile: String, test: TestModel) throws -> URL {
-        return try self.runTest(xcodeFile: xcodeFile, test: test)
+        return try self.runTest(xcodeFile: xcodeFile, testOnly: test)
     }
     
     func collectTestCoverage(xcodeFile: String, test: TestModel?) throws -> URL {
@@ -102,8 +102,8 @@ git rev-parse -q --verify "test_marker/$COMMIT_HASH"
 cd \(gitRoot)
 git fetch
 COMMIT_HASH=$(git rev-parse HEAD)
-echo $COMMIT_HASH > \(Const.markerPath)/marked_hash.txt
-git add \(Const.markerPath)/
+echo $COMMIT_HASH > \(Const.markerDirPath)/marked_hash.txt
+git add \(Const.markerDirPath)/
 git commit --message "DiffTest Marker Against $COMMIT_HASH | \(message) \n "
 git tag "test_marker/$COMMIT_HASH" -m "per test coverage marked"
 """

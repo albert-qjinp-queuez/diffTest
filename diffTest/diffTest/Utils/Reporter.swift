@@ -45,7 +45,7 @@ class PerTestCoverageReporter: NSObject {
     }
 
     func save(_ url: URL) throws {
-        let url = url.appending(path: Const.markerCoverageMapFile)
+        let url = url.appending(path: Const.markerCoverageMapFileName)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
         
@@ -53,30 +53,36 @@ class PerTestCoverageReporter: NSObject {
             .encode(perTestsCoverageMap)
         try data.write(to: url)
     }
+    
+    func load(_ coverageFileURL: URL) throws {
+        let jsonDecoder = JSONDecoder()
+        let data = try Data(contentsOf: coverageFileURL)
+        perTestsCoverageMap = try jsonDecoder.decode([String: SlatherFileCoverage].self, from: data)
+    }
 }
 
 class TestListReporter: NSObject {
-    static let testList = Const.markerTestListFile
-    var fm = FileManager.default
+    static let testList = Const.markerTestListFileName
+    let fm = FileManager.default
+    var markerRootDir: URL
     
-    var rootDir: URL
-    init(rootDir: URL) {
-        self.rootDir = rootDir
+    init(markerRootURL: URL) {
+        self.markerRootDir = markerRootURL
         super.init()
         fm.delegate = self
     }
     
     func prepare() {
         var isDir = ObjCBool(true)
-        if fm.fileExists(atPath: rootDir.standardizedFileURL.absoluteString,
+        if fm.fileExists(atPath: markerRootDir.standardizedFileURL.absoluteString,
                          isDirectory: &isDir) {
-            try? fm.removeItem(at: rootDir)
+            try? fm.removeItem(at: markerRootDir)
         }
-        try? fm.createDirectory(at: rootDir, withIntermediateDirectories: true)
+        try? fm.createDirectory(at: markerRootDir, withIntermediateDirectories: true)
     }
     
     func testList(tests: [TestModel]) {
-        let testFile = rootDir.appending(path: Self.testList)
+        let testFile = markerRootDir.appending(path: Self.testList)
         guard let fs = OutputStream(url: testFile, append: false) else {
             return
         }
@@ -106,6 +112,31 @@ extension TestListReporter: FileManagerDelegate {
     func fileManager(_ f: FileManager, shouldProceedAfterError: any Error, removingItemAtPath: String) -> Bool {
         return true
     }
-    
+}
 
+class TestListIterator: IteratorProtocol {
+    typealias Element = String
+    
+    var lineReader: LineReader
+    init(lineReader: LineReader) {
+        self.lineReader = lineReader
+    }
+    
+    func next() -> String? {
+        return lineReader.next()
+    }
+}
+
+class TestListReader: Sequence {
+    var url: URL
+    init(url: URL) {
+        self.url = url
+    }
+    
+    func makeIterator() -> some IteratorProtocol {
+        guard let reader = try? LineReader(url: url) else {
+            DiffTest.exit(withError: DiffTestError.unkown)
+        }
+        return TestListIterator(lineReader: reader)
+    }
 }

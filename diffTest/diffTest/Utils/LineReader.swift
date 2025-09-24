@@ -44,8 +44,12 @@ class LineReader: Sequence, IteratorProtocol {
             }
         }
     }
+    
+    func close() throws {
+        try fileHandle.close()
+    }
 
     deinit {
-        try? fileHandle.close()
+        try? close()
     }
 }
