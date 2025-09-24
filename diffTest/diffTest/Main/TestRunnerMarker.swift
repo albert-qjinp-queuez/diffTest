@@ -19,11 +19,11 @@ extension TestRunner {
     }
     
     func runFullTest(xcodeFile: String) throws -> URL {
-        return try self.runTest(xcodeFile: xcodeFile, test: nil)
+        return try self.runTest(xcodeFile: xcodeFile, testOnly: nil)
     }
     
     func runTestCoverage(xcodeFile: String, test: TestModel) throws -> URL {
-        return try self.runTest(xcodeFile: xcodeFile, test: test)
+        return try self.runTest(xcodeFile: xcodeFile, testOnly: test)
     }
     
     func collectTestCoverage(xcodeFile: String, test: TestModel?) throws -> URL {

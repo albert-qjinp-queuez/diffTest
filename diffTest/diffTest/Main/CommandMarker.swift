@@ -26,13 +26,7 @@ struct Mark: ParsableCommand {
         let finalReportURL = url.appending(path: Const.markerDirPath)
         let resultReporter = TestListReporter(markerRootURL:  finalReportURL)
         resultReporter.prepare()
-        guard let xcodeFiles = findXcodeFile(url: url),
-            xcodeFiles.count > 0,
-            let xcodeFile = xcodeFiles.first
-        else {
-            DiffTest.exit(withError: DiffTestError.unkown)
-        }
-        let xcodeFilePath = String(xcodeFile.absoluteString.trimmingPrefix("file://"))
+        let xcodeFilePath = ScriptUtil.findXcodeFilePath(url: url)
 
         let perTestCoverage = PerTestCoverageReporter()
         let testRunner = TestRunner(root: root)
@@ -78,21 +72,4 @@ struct Mark: ParsableCommand {
         let runningPath: NSString = args[0] as NSString
         return runningPath.deletingLastPathComponent
     }
-    
-    func findXcodeFile(url rootURL: URL) ->  [URL]? {
-        var xcodeFiles: [URL]?
-        do {
-            xcodeFiles = try FileManager
-                .default
-                .contentsOfDirectory(at: rootURL, includingPropertiesForKeys: nil)
-            xcodeFiles = xcodeFiles?.filter() {
-                return $0.pathExtension == "xcworkspace"
-                    || $0.pathExtension == "xcodeproj"
-            }
-        } catch {
-            DiffTest.exit(withError: DiffTestError.unkown)
-        }
-        return xcodeFiles
-    }
-    
 }

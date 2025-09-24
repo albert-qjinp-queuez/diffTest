@@ -16,7 +16,7 @@ struct Const {
     static let slatherReportFileNaem = "report.json"
     static let markerTestListFileName = "test_list.txt"
     static let markerCoverageMapFileName = "per_test_coverage_map.json"
-    static let broakenFileName = "broken.txt"
+    static let brokenFileName = "broken.txt"
     static let markerHashFilePath = ".test_marker/marked_hash.txt"
     static let diffFilePath = "./temp/diff.txt"
 }
@@ -51,10 +51,10 @@ grep -q '^\(Const.markerDirPath)/' .gitattributes || echo '\(Const.markerDirPath
         let _ = try ScriptUtil.bashScript(command: bashCommand)
     }
     
-    func runTest(xcodeFile: String, test: TestModel?) throws -> URL {
-        let path = test?.identifierPath() ?? fullTestPath
+    func runTest(xcodeFile: String, testOnly: TestModel? = nil, skipTest: String = "") throws -> URL {
+        let path = testOnly?.identifierPath() ?? fullTestPath
         var testingScope = ""
-        if let identifier = test?.identifier {
+        if let identifier = testOnly?.identifier {
             testingScope = "-only-testing:\"\(identifier)\""
         }
         let bashCommand = """
@@ -68,10 +68,11 @@ xcodebuild \
 -resultBundlePath \(path)/\(xcResult) \
 -enableCodeCoverage YES \
  \(testingScope) \
+ \(skipTest) \
  test
 """
         let _ = try ScriptUtil.bashScript(command: bashCommand)
-        return testResultURL(test: test)
+        return testResultURL(test: testOnly)
     }
 
     func clean() throws {

@@ -24,6 +24,12 @@ struct Test: ParsableCommand {
         }
         try? testRunner.makeDiff(hash: hashKey)
         try? testRunner.parseDiff(rootURL: rootURL)
+        guard let testNeeded = try? testRunner.collectTestNeeded(rootURL: rootURL) else {
+            DiffTest.exit(withError: DiffTestError.unkown)
+        }
+        let skipTesting = try? testRunner.skipTesting(rootURL: rootURL, testNeed: testNeeded)
+        let xcodeFile = ScriptUtil.findXcodeFilePath(url: rootURL)
+        _ = try? testRunner.runTest(xcodeFile: xcodeFile, skipTest: skipTesting ?? "")
     }
     
     func runningRoot() -> String {

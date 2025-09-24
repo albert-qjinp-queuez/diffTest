@@ -10,12 +10,8 @@ import Foundation
 class GitBrokenLineReporter {
     var ofs: OutputStream
     
-    init(rootDir: URL) throws {
-        let brokenFilePath = rootDir
-            .appending(path: Const.tempDirPath)
-            .appending(path: Const.broakenFileName)
-            .standardizedFileURL
-        guard let outputStream = OutputStream(url: brokenFilePath, append: false) else {
+    init(brokenFileURL: URL) throws {
+        guard let outputStream = OutputStream(url: brokenFileURL, append: false) else {
             throw DiffTestError.unkown
         }
         outputStream.open()

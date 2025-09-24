@@ -36,4 +36,30 @@ struct ScriptUtil {
         pipe.fileHandleForReading.readabilityHandler = nil
         return totalScript
     }
+
+    static func findXcodeFilePath(url: URL) -> String {
+        
+        guard let xcodeFiles = findXcodeFile(url: url),
+            xcodeFiles.count > 0,
+            let xcodeFile = xcodeFiles.first
+        else {
+            DiffTest.exit(withError: DiffTestError.unkown)
+        }
+        return String(xcodeFile.absoluteString.trimmingPrefix("file://"))
+    }
+    static func findXcodeFile(url rootURL: URL) ->  [URL]? {
+        var xcodeFiles: [URL]?
+        do {
+            xcodeFiles = try FileManager
+                .default
+                .contentsOfDirectory(at: rootURL, includingPropertiesForKeys: nil)
+            xcodeFiles = xcodeFiles?.filter() {
+                return $0.pathExtension == "xcworkspace"
+                    || $0.pathExtension == "xcodeproj"
+            }
+        } catch {
+            DiffTest.exit(withError: DiffTestError.unkown)
+        }
+        return xcodeFiles
+    }
 }

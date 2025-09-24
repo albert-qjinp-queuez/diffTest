@@ -53,6 +53,12 @@ class PerTestCoverageReporter: NSObject {
             .encode(perTestsCoverageMap)
         try data.write(to: url)
     }
+    
+    func load(_ coverageFileURL: URL) throws {
+        let jsonDecoder = JSONDecoder()
+        let data = try Data(contentsOf: coverageFileURL)
+        perTestsCoverageMap = try jsonDecoder.decode([String: SlatherFileCoverage].self, from: data)
+    }
 }
 
 class TestListReporter: NSObject {
@@ -105,5 +111,32 @@ extension TestListReporter: FileManagerDelegate {
     
     func fileManager(_ f: FileManager, shouldProceedAfterError: any Error, removingItemAtPath: String) -> Bool {
         return true
+    }
+}
+
+class TestListIterator: IteratorProtocol {
+    typealias Element = String
+    
+    var lineReader: LineReader
+    init(lineReader: LineReader) {
+        self.lineReader = lineReader
+    }
+    
+    func next() -> String? {
+        return lineReader.next()
+    }
+}
+
+class TestListReader: Sequence {
+    var url: URL
+    init(url: URL) {
+        self.url = url
+    }
+    
+    func makeIterator() -> some IteratorProtocol {
+        guard let reader = try? LineReader(url: url) else {
+            DiffTest.exit(withError: DiffTestError.unkown)
+        }
+        return TestListIterator(lineReader: reader)
     }
 }
