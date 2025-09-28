@@ -73,7 +73,7 @@ cat ./.test_marker/marked_hash.txt
                coverageMap.count > 0,
                let coverage = coverageMap[broken.line - 1], // -1 while perTestCoverage line starts from 0 index
                let coverage = coverage {
-                let tests = coverage.perTestCoverages.map { $0.testIdentifier }
+                let tests = coverage.perTestCoverages.keys
                 tests.forEach { needTest.insert($0) }
             }
         }

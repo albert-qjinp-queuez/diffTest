@@ -9,6 +9,7 @@ import Foundation
 
 struct Const {
     static let tempDirPath = "./temp"
+    static let fullBuildDirPath = "./temp/result/full-build"
     static let fullTestDirPath = "./temp/result/full-test"
     static let tempResultDirPath = "./temp/result"
     static let markerDirPath = ".test_marker"
@@ -21,13 +22,14 @@ struct Const {
     static let diffFilePath = "./temp/diff.txt"
 }
 
-struct TestRunner {
+class TestRunner {
     let fullTestPath = Const.fullTestDirPath
     let xcResult = Const.xcResultFileName
     let slatherReport = Const.slatherReportFileNaem
     let tempResultPath = Const.tempResultDirPath
     
     var projectRoot: String
+    var buildPath: String?
     var gitRoot: String //for now, but better to seperate if needed
     var destination = "platform=iOS Simulator,name=iPhone 16,OS=18.2" //for now, but better to get (or search)
     var xcodeFile = "DiffTestSample.xcproj" //for now, but better to get (or search)
@@ -51,8 +53,52 @@ grep -q '^\(Const.markerDirPath)/' .gitattributes || echo '\(Const.markerDirPath
         let _ = try ScriptUtil.bashScript(command: bashCommand)
     }
     
-    func runTest(xcodeFile: String, testOnly: TestModel? = nil, skipTest: String = "") throws -> URL {
-        let path = testOnly?.identifierPath() ?? fullTestPath
+    enum XCBuildMode {
+        case build
+        case buildForTest
+        case buildAndTest
+        case testOnly
+        
+        func xcodeParam() -> String{
+            switch self {
+            case .build:
+                return "build"
+            case .buildAndTest:
+                return "test"
+            case .buildForTest:
+                return "build-for-testing"
+            case .testOnly:
+                return "test-without-building"
+            }
+        }
+    }
+    
+    func testResultURL(test: TestModel?) -> URL {
+        let path = test?.identifierPath() ?? fullTestPath
+        var filePath = URL(fileURLWithPath: "\(projectRoot)")
+        filePath = filePath.appendingPathComponent(path)
+        filePath = filePath.appendingPathComponent(xcResult)
+        return filePath
+    }
+    
+    
+    func runTest(xcodeFile: String,
+                 testOnly: TestModel? = nil,
+                 skipTest: String = "",
+                 mode: XCBuildMode = .buildAndTest) throws -> URL {
+        var resultPath = testOnly?.identifierPath() ?? fullTestPath
+        let derivePath: String
+        switch mode {
+        case .testOnly:
+            derivePath = Const.fullBuildDirPath
+        case .buildForTest:
+            derivePath = Const.fullBuildDirPath
+            resultPath = Const.fullBuildDirPath
+            buildPath = derivePath
+        default:
+            derivePath = resultPath
+            buildPath = derivePath
+        }
         var testingScope = ""
         if let identifier = testOnly?.identifier {
             testingScope = "-only-testing:\"\(identifier)\""
@@ -64,16 +110,16 @@ xcodebuild \
 -scheme \(schema) \
 -destination "\(destination)" \
 -configuration Debug \
--derivedDataPath \(path)/build \
--resultBundlePath \(path)/\(xcResult) \
+-derivedDataPath \(derivePath)/build \
+-resultBundlePath \(resultPath)/\(xcResult) \
 -enableCodeCoverage YES \
  \(testingScope) \
  \(skipTest) \
- test
+ \(mode.xcodeParam())
 """
         let _ = try ScriptUtil.bashScript(command: bashCommand)
         return testResultURL(test: testOnly)
-    }
+    }   
 
     func clean() throws {
         let bashCommand = """
