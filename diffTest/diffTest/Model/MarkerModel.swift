@@ -32,7 +32,7 @@ struct SlatherFileCoverage: Codable {
     
     mutating func prepareCoverageMap(line: Int, fullCoverage: Int) {
         var coverageMap = coverageMap ?? [Int: CoverageMap?]()
-        coverageMap[line] = CoverageMap(line: line, coverage: fullCoverage, perTestCoverages: [])
+        coverageMap[line] = CoverageMap(line: line, coverage: fullCoverage, perTestCoverages: [:])
         self.coverageMap = coverageMap
     }
     
@@ -51,7 +51,7 @@ struct SlatherFileCoverage: Codable {
         }
         coverageOfLine = coverageMapLine
         let ptc = PerTestCoverage(coverage: coverage, testIdentifier: testIdentifier)
-        coverageOfLine.perTestCoverages.append(ptc)
+        coverageOfLine.perTestCoverages[ptc.testIdentifier] = ptc.coverage
         coverageMap[line] = coverageOfLine
         self.coverageMap = coverageMap
     }
@@ -60,7 +60,7 @@ struct SlatherFileCoverage: Codable {
 struct CoverageMap: Codable {
     var line: Int
     var coverage: Int
-    var perTestCoverages: [PerTestCoverage]
+    var perTestCoverages: [String: Int]
 }
 
 struct PerTestCoverage: Codable {

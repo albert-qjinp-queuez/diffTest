@@ -12,8 +12,8 @@ struct Mark: ParsableCommand {
     @Option(name: .shortAndLong, help: "root directory of the project")
     var root: String?
 
-    @Argument(help: "bypass full test if result is already exists")
-    var runFullTest = true
+    @Argument(help: "default: buildonly and testonly, nobuild: use old build file, full: every test will do the full build testing")
+    var runFullTest = "default"
     
     @Argument(help: "bypass individual tests if result is already exists")
     var runPerTest = true
@@ -32,10 +32,14 @@ struct Mark: ParsableCommand {
         let testRunner = TestRunner(root: root)
         do {
             let fullBuildResult: URL
-            if runFullTest {
-                fullBuildResult = try testRunner.runFullTest(xcodeFile: xcodeFilePath)
-            } else {
+            switch runFullTest {
+            case "nobuild":
                 fullBuildResult = testRunner.testResultURL(test: nil)
+            case "full":
+                fullBuildResult = try testRunner.runFullTest(xcodeFile: xcodeFilePath)
+            default:
+                _ = try testRunner.runFullBuild(xcodeFile: xcodeFilePath)
+                fullBuildResult = try testRunner.runFullTest(xcodeFile: xcodeFilePath, mode: .testOnly)
             }
             let fullTestCoverage = try testRunner.collectTestCoverage(xcodeFile: xcodeFilePath, test: nil)
             try perTestCoverage.readFullCoverage(fullTestCoverage)
@@ -43,7 +47,7 @@ struct Mark: ParsableCommand {
             resultReporter.testList(tests: testResults)
             for test in testResults {
                 if runPerTest {
-                    _ = try testRunner.runTestCoverage(xcodeFile: xcodeFilePath, test: test)
+                    _ = try testRunner.runTestCoverage(xcodeFile: xcodeFilePath, test: test, mode: .testOnly)
                 }
                 let ptcResultURL: URL
                 ptcResultURL = try testRunner.collectTestCoverage(xcodeFile: xcodeFilePath, test: test)

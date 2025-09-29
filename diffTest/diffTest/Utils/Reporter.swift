@@ -87,7 +87,7 @@ class TestListReporter: NSObject {
             return
         }
         fs.open()
-        for test in tests {
+        for test in tests.sorted(by: { $0.identifier.compare($1.identifier) == .orderedAscending }) {
             let testName = test.identifier + "\n"
             if let data = testName.data(using: .utf8) as? NSData {
                 fs.write(data.bytes, maxLength: data.count)

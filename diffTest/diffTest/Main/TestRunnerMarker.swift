@@ -10,30 +10,29 @@ import XCResultKit
 
 extension TestRunner {
     
-    func testResultURL(test: TestModel?) -> URL {
-        let path = test?.identifierPath() ?? fullTestPath
-        var filePath = URL(fileURLWithPath: "\(projectRoot)")
-        filePath = filePath.appendingPathComponent(path)
-        filePath = filePath.appendingPathComponent(xcResult)
-        return filePath
+    func runFullBuild(xcodeFile: String) throws -> URL {
+        return try self.runTest(xcodeFile: xcodeFile,
+                                testOnly: nil,
+                                mode: .buildForTest)
     }
     
-    func runFullTest(xcodeFile: String) throws -> URL {
-        return try self.runTest(xcodeFile: xcodeFile, testOnly: nil)
+    func runFullTest(xcodeFile: String, mode: XCBuildMode = .buildAndTest) throws -> URL {
+        return try self.runTest(xcodeFile: xcodeFile, testOnly: nil, mode: mode)
     }
     
-    func runTestCoverage(xcodeFile: String, test: TestModel) throws -> URL {
-        return try self.runTest(xcodeFile: xcodeFile, testOnly: test)
+    func runTestCoverage(xcodeFile: String, test: TestModel, mode: XCBuildMode = .buildAndTest) throws -> URL {
+        return try self.runTest(xcodeFile: xcodeFile, testOnly: test, mode: mode)
     }
     
     func collectTestCoverage(xcodeFile: String, test: TestModel?) throws -> URL {
         let path = test?.identifierPath() ?? fullTestPath
+        let buildPath = buildPath ?? path
         let bashCommand = """
 cd \(projectRoot)
 slather coverage \
   --workspace \(xcodeFile) \
   --scheme \(schema) \
-  --build-directory \(path)/build \
+  --build-directory \(buildPath)/build \
   --output-directory \(path) \
   --json \
 \(xcodeFile)
