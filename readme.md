@@ -28,7 +28,8 @@ add below 2 arguments
 run diffTest target will mark 
 
 this will generate file and commit this in to the repo
-https://github.com/albert-qjinp-queuez/DiffTestSample/blob/develop/.test_marker/perTestCoverageMap.json
+https://github.com/albert-qjinp-queuez/DiffTestSample/blob/testRun/.test_marker/per_test_coverage_map.json
+
 
 3. Diff Test
 open edit scheme 
