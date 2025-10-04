@@ -49,9 +49,8 @@ some code change will not break the previous test coverages but alter them.
 
 ## Mile Stone TODO
 ### TODO until v1.0.0
-  - easy way to install : may be homebrew?
+  - easy way to install : may be swiftPM?
   - check not only Sample Code but in real situations
-  - apply test-without-build
   - more optimization - reduce temp file handover; change it to more direct object hand overs
 
 ### TODO until v2.0.0
