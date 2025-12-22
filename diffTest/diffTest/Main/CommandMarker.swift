@@ -73,7 +73,7 @@ struct Mark: ParsableCommand {
         guard args.count > 1 else {
             DiffTest.exit(withError: DiffTestError.unkown)
         }
-        let runningPath: NSString = args[0] as NSString
+        let runningPath = FileManager.default.currentDirectoryPath
         return runningPath.deletingLastPathComponent
     }
 }
